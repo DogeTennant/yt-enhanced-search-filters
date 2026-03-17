@@ -2,14 +2,14 @@
 
 A browser extension that gives YouTube the search filters it should have had all along.
 
-YouTube's built-in filters are limited and can't be combined. This extension replaces them with a powerful, multi-select filter panel that lets you slice search results any way you want — and remembers your preferences.
+YouTube's built-in filters are limited and can't be combined. This extension replaces them with a powerful, multi-select filter panel that lets you slice search results any way you want - and remembers your preferences.
 
 ---
 
 ## Features
 
 ### 🔀 Combinable filters
-All filters can be combined freely — something YouTube's native filters don't allow.
+All filters can be combined freely - something YouTube's native filters don't allow.
 
 ### 📋 Filter categories
 
@@ -50,7 +50,7 @@ Press `Alt + F` to open or close the filter panel without touching your mouse.
 3. Enable **Developer mode** (toggle in the top right)
 4. Click **Load unpacked**
 5. Select the `yt-enhanced-filters` folder
-6. Go to YouTube and search for anything — the **⚡ Filters** button will appear in the top right
+6. Go to YouTube and search for anything - the **⚡ Filters** button will appear in the top right
 
 ### Firefox
 
@@ -64,7 +64,7 @@ Press `Alt + F` to open or close the filter panel without touching your mouse.
 
 ## How it works
 
-YouTube encodes its search filters as a base64-encoded protobuf value in the URL (`?sp=...`). This extension builds that value from scratch, allowing any combination of filters to be applied simultaneously — including combinations YouTube's own UI doesn't support.
+YouTube encodes its search filters as a base64-encoded protobuf value in the URL (`?sp=...`). This extension builds that value from scratch, allowing any combination of filters to be applied simultaneously - including combinations YouTube's own UI doesn't support.
 
 Filters that YouTube doesn't expose at all (view count range, custom duration, keyword matching, hide watched, hide clutter) are applied client-side by reading the search result cards directly in the DOM.
 
@@ -84,9 +84,9 @@ yt-enhanced-filters/
 
 ## Known limitations
 
-- **"Hide watched" is client-side only** — YouTube's own "Unwatched" filter is broken server-side, so we detect watched videos by looking for a red progress bar in the DOM. Videos watched on mobile or other devices may not show the bar.
+- **"Hide watched" is client-side only** - YouTube's own "Unwatched" filter is broken server-side, so we detect watched videos by looking for a red progress bar in the DOM. Videos watched on mobile or other devices may not show the bar.
 - **View count and duration filtering** reads data from the search result cards. If YouTube changes their HTML structure, these may need updating.
-- **Subscriber count and like count filters** are not available — YouTube does not include this data in search result cards.
+- **Subscriber count and like count filters** are not available - YouTube does not include this data in search result cards.
 
 ---
 
@@ -100,4 +100,4 @@ If you'd like to contribute code, feel free to open a pull request. The codebase
 
 ## License
 
-MIT License — do whatever you want with it.
+MIT License - do whatever you want with it.

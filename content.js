@@ -5,7 +5,7 @@
 (function () {
   'use strict';
 
-  // ── FILTER STATE ────────────────────────────────────────
+  //FILTER STATE
   let filters = {
     sort: 'relevance',
     uploadDate: null,
@@ -28,23 +28,38 @@
     hideShorts: false,
   };
 
-  // ── STORAGE ──────────────────────────────────────────────
+  //STORAGE
+  // These are the only settings that persist permanently across sessions
+  const PERSISTENT_KEYS = ['hideSponsored', 'hideMovies', 'hideSections', 'hideShorts', 'hideWatched'];
+
   function saveFilters() {
-    localStorage.setItem('yesf', JSON.stringify(filters));
+    // Save ALL filters to sessionStorage (survives page reloads within the session)
+    sessionStorage.setItem('yesf', JSON.stringify(filters));
+    // Save only clutter/watched to localStorage (survives browser restarts)
+    const persistent = {};
+    PERSISTENT_KEYS.forEach(k => { persistent[k] = filters[k]; });
+    localStorage.setItem('yesf-persistent', JSON.stringify(persistent));
   }
 
   function loadFilters() {
     try {
-      const saved = localStorage.getItem('yesf');
-      if (saved) {
-        const parsed = JSON.parse(saved);
+      // First load persistent settings
+      const savedPersistent = localStorage.getItem('yesf-persistent');
+      if (savedPersistent) {
+        const parsed = JSON.parse(savedPersistent);
+        filters = { ...filters, ...parsed };
+      }
+      // Then overlay session settings (more recent, overrides persistent)
+      const savedSession = sessionStorage.getItem('yesf');
+      if (savedSession) {
+        const parsed = JSON.parse(savedSession);
         filters = { ...filters, ...parsed };
       }
       if (!Array.isArray(filters.features)) filters.features = [];
     } catch (e) {}
   }
 
-  // ── PRESETS ───────────────────────────────────────────────
+  //PRESETS
   function loadPresets() {
     try {
       const saved = localStorage.getItem('yesf-presets');
@@ -88,20 +103,30 @@
     names.forEach(name => {
       const row = document.createElement('div');
       row.className = 'yesf-preset-row';
-      row.innerHTML = `
-        <button class="chip yesf-preset-load">${name}</button>
-        <button class="yesf-preset-update" title="Overwrite with current filters">💾</button>
-        <button class="yesf-preset-delete" title="Delete preset">✕</button>
-      `;
-      row.querySelector('.yesf-preset-load').addEventListener('click', () => applyPreset(name));
-      row.querySelector('.yesf-preset-update').addEventListener('click', () => {
+      const loadBtn = document.createElement('button');
+      loadBtn.className = 'chip yesf-preset-load';
+      loadBtn.textContent = name;
+
+      const updateBtn = document.createElement('button');
+      updateBtn.className = 'yesf-preset-update';
+      updateBtn.title = 'Overwrite with current filters';
+      updateBtn.textContent = '💾';
+
+      const deleteBtn = document.createElement('button');
+      deleteBtn.className = 'yesf-preset-delete';
+      deleteBtn.title = 'Delete preset';
+      deleteBtn.textContent = '✕';
+
+      row.appendChild(loadBtn);
+      row.appendChild(updateBtn);
+      row.appendChild(deleteBtn);
+      loadBtn.addEventListener('click', () => applyPreset(name));
+      updateBtn.addEventListener('click', () => {
         savePreset(name);
-        // Flash the button briefly to confirm
-        const btn = row.querySelector('.yesf-preset-update');
-        btn.textContent = '✓';
-        setTimeout(() => { btn.textContent = '💾'; }, 1000);
+        updateBtn.textContent = '✓';
+        setTimeout(() => { updateBtn.textContent = '💾'; }, 1000);
       });
-      row.querySelector('.yesf-preset-delete').addEventListener('click', () => {
+      deleteBtn.addEventListener('click', () => {
         deletePreset(name);
         updatePresetsUI();
       });
@@ -109,7 +134,7 @@
     });
   }
 
-  // ── ACTIVE FILTER COUNT ───────────────────────────────────
+  //ACTIVE FILTER COUNT
   function countActiveFilters() {
     let count = 0;
     if (filters.sort !== 'relevance') count++;
@@ -143,7 +168,7 @@
       : '⚡ Filters';
   }
 
-  // ── PROTOBUF ENCODER ─────────────────────────────────────
+  //  PROTOBUF ENCODER 
   function encodeVarint(n) {
     const bytes = [];
     do {
@@ -163,7 +188,7 @@
 
   function buildSP() {
     const inner = [];
-    const dateMap    = { today: 1, week: 2, month: 3, year: 4 };
+    const dateMap    = { today: 2, week: 3, month: 4, year: 5 };
     const typeMap    = { video: 1, channel: 2, playlist: 3, movie: 4 };
     const durMap     = { short: 1, medium: 2, long: 3 };
     const featureMap = { hd: 4, subtitles: 5, cc: 6, live: 8, purchased: 9, '4k': 14, '360': 15, vr180: 17, '3d': 18, hdr: 19 };
@@ -180,7 +205,7 @@
     }
 
     const outer = [];
-    const sortMap = { date: 2, views: 3, rating: 4 };
+    const sortMap = { date: 2, views: 3 };
     if (filters.sort !== 'relevance' && sortMap[filters.sort])
       outer.push(...encodeField(1, sortMap[filters.sort], false));
     if (inner.length > 0)
@@ -190,7 +215,7 @@
     return btoa(String.fromCharCode(...outer));
   }
 
-  // ── CLIENT-SIDE FILTERING HELPERS ────────────────────────
+  //  CLIENT-SIDE FILTERING HELPERS 
   function parseViews(str) {
     if (!str) return null;
     str = str.replace(/,/g, '').replace(/views?/i, '').trim();
@@ -209,31 +234,12 @@
     return null;
   }
 
-  function parseUploadDate(str) {
-    if (!str) return null;
-    if (/just now|moments ago/i.test(str)) return new Date();
-    const m = str.match(/(\d+)\s+(second|minute|hour|day|week|month|year)s?\s+ago/i);
-    if (!m) return null;
-    const n = parseInt(m[1]);
-    const d = new Date();
-    switch (m[2].toLowerCase()) {
-      case 'second': d.setSeconds(d.getSeconds() - n); break;
-      case 'minute': d.setMinutes(d.getMinutes() - n); break;
-      case 'hour':   d.setHours(d.getHours() - n); break;
-      case 'day':    d.setDate(d.getDate() - n); break;
-      case 'week':   d.setDate(d.getDate() - n * 7); break;
-      case 'month':  d.setMonth(d.getMonth() - n); break;
-      case 'year':   d.setFullYear(d.getFullYear() - n); break;
-    }
-    return d;
-  }
-
   function splitWords(str) {
     if (!str) return [];
     return str.split(/[\s,]+/).map(s => s.toLowerCase().trim()).filter(Boolean);
   }
 
-  // ── CLIENT-SIDE FILTERING ─────────────────────────────────
+  //  CLIENT-SIDE FILTERING 
   function applyClientFilters() {
     // CSS injection - hides elements the instant YouTube creates them
     let styleEl = document.getElementById('yesf-style');
@@ -269,8 +275,6 @@
     const dMax     = parseFloat(filters.durationMax);
     const vMin     = parseFloat(filters.viewMin);
     const vMax     = parseFloat(filters.viewMax);
-    const dateFrom = filters.dateFrom ? new Date(filters.dateFrom) : null;
-    const dateTo   = filters.dateTo   ? new Date(filters.dateTo + 'T23:59:59') : null;
     const inc      = splitWords(filters.includeWords);
     const exc      = splitWords(filters.excludeWords);
 
@@ -305,14 +309,6 @@
       if (!hide && views !== null) {
         if (!isNaN(vMin) && vMin > 0 && views < vMin) hide = true;
         if (!hide && !isNaN(vMax) && vMax > 0 && views > vMax) hide = true;
-      }
-
-      if (!hide && uploadDateStr) {
-        const uploaded = parseUploadDate(uploadDateStr);
-        if (uploaded) {
-          if (dateFrom && uploaded < dateFrom) hide = true;
-          if (!hide && dateTo && uploaded > dateTo) hide = true;
-        }
       }
 
       if (!hide && inc.length > 0 && !inc.some(w => title.includes(w))) hide = true;
@@ -352,21 +348,26 @@
     counter.textContent = `⚡ Showing ${shown} of ${total} video results`;
   }
 
-  // ── APPLY / RESET ─────────────────────────────────────────
+  //  APPLY / RESET 
   function applyFilters() {
     saveFilters();
     updateBtnLabel();
     const sp = buildSP();
     const url = new URL(window.location.href);
-    const currentSP = url.searchParams.get('sp') || '';
 
-    if (sp !== currentSP) {
-      if (sp) url.searchParams.set('sp', sp);
-      else url.searchParams.delete('sp');
-      window.location.href = url.toString();
-    } else {
-      applyClientFilters();
-    }
+    // Inject before:/after: operators directly into the search query
+    let query = url.searchParams.get('search_query') || '';
+    // Strip any previously injected operators first
+    query = query.replace(/\s*(before|after):\S+/g, '').trim();
+    if (filters.dateFrom) query += ` after:${filters.dateFrom}`;
+    if (filters.dateTo)   query += ` before:${filters.dateTo}`;
+    url.searchParams.set('search_query', query.trim());
+
+    const currentSP = url.searchParams.get('sp') || '';
+    if (sp) url.searchParams.set('sp', sp);
+    else url.searchParams.delete('sp');
+
+    window.location.href = url.toString();
   }
 
   function resetFilters() {
@@ -376,14 +377,18 @@
       dateFrom: '', dateTo: '', hideWatched: false, includeWords: '', includeAllWords: '', excludeWords: '',
       hideSponsored: false, hideMovies: false, hideSections: false, hideShorts: false,
     };
-    localStorage.removeItem('yesf');
-    updateBtnLabel();
+    localStorage.removeItem('yesf-persistent');
+    sessionStorage.removeItem('yesf');
     const url = new URL(window.location.href);
     url.searchParams.delete('sp');
+    // Strip injected date operators from query
+    let query = url.searchParams.get('search_query') || '';
+    query = query.replace(/\s*(before|after):\S+/g, '').trim();
+    url.searchParams.set('search_query', query);
     window.location.href = url.toString();
   }
 
-  // ── UI ────────────────────────────────────────────────────
+  //  UI 
   function injectUI() {
     if (document.getElementById('yesf-btn')) return;
 
@@ -405,9 +410,7 @@
           <div class="yesf-label">Sort by</div>
           <div class="yesf-chips">
             <button class="chip solo" data-f="sort" data-v="relevance">Relevance</button>
-            <button class="chip solo" data-f="sort" data-v="date">Upload date</button>
-            <button class="chip solo" data-f="sort" data-v="views">View count</button>
-            <button class="chip solo" data-f="sort" data-v="rating">Rating</button>
+            <button class="chip solo" data-f="sort" data-v="views">Popularity</button>
           </div>
         </div>
 
@@ -422,10 +425,10 @@
         </div>
 
         <div class="yesf-group">
-          <div class="yesf-label">Custom date range</div>
+          <div class="yesf-label">Date range (server-side)</div>
           <div class="yesf-row">
-            <label>From <input type="date" id="yesf-date-from"></label>
-            <label>To <input type="date" id="yesf-date-to"></label>
+            <label>After <input type="date" id="yesf-date-from"></label>
+            <label>Before <input type="date" id="yesf-date-to"></label>
           </div>
         </div>
 
@@ -659,7 +662,7 @@
     syncBtn('#yesf-hide-shorts',    filters.hideShorts);
   }
 
-  // ── PAGE DETECTION ────────────────────────────────────────
+  //  PAGE DETECTION 
   let lastUrl = '';
   let filterTimer = null;
 
@@ -688,7 +691,7 @@
     onPageChange();
     if (window.location.pathname === '/results' && document.getElementById('yesf-panel')) {
       clearTimeout(filterTimer);
-      filterTimer = setTimeout(applyClientFilters, 400);
+      filterTimer = setTimeout(applyClientFilters, 600);
     }
   });
 
