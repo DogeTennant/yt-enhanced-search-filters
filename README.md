@@ -15,8 +15,9 @@ All filters can be combined freely - something YouTube's native filters don't al
 
 | Category | Options |
 |---|---|
-| **Sort by** | Relevance, Upload date, View count, Rating |
-| **Upload date** | Today, This week, This month, This year, Custom date range |
+| **Sort by** | Relevance, Popularity |
+| **Upload date** | Today, This week, This month, This year |
+| **Date range** | Custom before/after dates (server-side, fully accurate) |
 | **Type** | Video, Channel, Playlist, Movie |
 | **Duration** | Under 4 min, 4–20 min, Over 20 min, Custom minute range |
 | **View count** | Custom min/max range |
@@ -39,6 +40,9 @@ A live counter above results shows how many videos passed your filters out of th
 ### ⌨️ Keyboard shortcut
 Press `Alt + F` to open or close the filter panel without touching your mouse.
 
+### 🧠 Smart settings persistence
+Hide clutter and Hide watched settings are saved permanently across browser sessions. All other filters reset between sessions so your searches always start fresh.
+
 ---
 
 ## Installation
@@ -58,13 +62,15 @@ Press `Alt + F` to open or close the filter panel without touching your mouse.
 2. Click **Load Temporary Add-on**
 3. Select the `manifest.json` file inside the folder
 
-> **Note:** Firefox requires reloading the extension after each browser restart when installed this way. A proper Firefox listing may be added in the future.
+> **Note:** Firefox requires reloading the extension after each browser restart when installed this way. Install via the Firefox Add-ons store for a permanent install.
 
 ---
 
 ## How it works
 
 YouTube encodes its search filters as a base64-encoded protobuf value in the URL (`?sp=...`). This extension builds that value from scratch, allowing any combination of filters to be applied simultaneously - including combinations YouTube's own UI doesn't support.
+
+The custom date range filter works by injecting `before:` and `after:` operators directly into the search query, which is how YouTube handles date filtering server-side. This means it works accurately even on videos that don't display a date in the results.
 
 Filters that YouTube doesn't expose at all (view count range, custom duration, keyword matching, hide watched, hide clutter) are applied client-side by reading the search result cards directly in the DOM.
 
@@ -87,6 +93,20 @@ yt-enhanced-filters/
 - **"Hide watched" is client-side only** - YouTube's own "Unwatched" filter is broken server-side, so we detect watched videos by looking for a red progress bar in the DOM. Videos watched on mobile or other devices may not show the bar.
 - **View count and duration filtering** reads data from the search result cards. If YouTube changes their HTML structure, these may need updating.
 - **Subscriber count and like count filters** are not available - YouTube does not include this data in search result cards.
+- **Sort by upload date** is no longer available - YouTube removed this option from their API.
+
+---
+
+## Changelog
+
+### v1.1
+- Fixed custom date range - now uses YouTube's native `before:`/`after:` search operators server-side for accurate results
+- Fixed sort by popularity encoding
+- Removed non-functional "Sort by upload date" and "Sort by rating" options (removed by YouTube)
+- Clutter and watched settings now persist permanently; other filters reset between sessions
+
+### v1.0
+- Initial release
 
 ---
 
