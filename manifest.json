@@ -1,0 +1,23 @@
+{
+  "manifest_version": 3,
+  "name": "YouTube Enhanced Search Filters",
+  "version": "1.0",
+  "description": "Powerful multi-select search filters for YouTube",
+  "permissions": [
+    "storage"
+  ],
+  "host_permissions": [
+    "https://www.youtube.com/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["https://www.youtube.com/*"],
+      "js": ["content.js"],
+      "css": ["style.css"],
+      "run_at": "document_end"
+    }
+  ],
+  "icons": {
+    "128": "icon.png"
+  }
+}
