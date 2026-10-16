@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "YouTube Enhanced Search Filters",
-  "version": "1.1",
-  "description": "Powerful multi-select search filters for YouTube",
+  "version": "2.0.0",
+  "description": "Combinable search filters for YouTube: date range, length, views, title words, channels, and hiding Shorts, ads and watched videos.",
   "browser_specific_settings": {
     "gecko": {
       "id": "yt-enhanced-filters@DogeTennant",
@@ -22,9 +22,15 @@
   "content_scripts": [
     {
       "matches": ["https://www.youtube.com/*"],
-      "js": ["content.js"],
+      "js": ["src/page-bridge.js"],
+      "run_at": "document_start",
+      "world": "MAIN"
+    },
+    {
+      "matches": ["https://www.youtube.com/*"],
+      "js": ["src/sp.js", "src/match.js", "src/panel.js", "src/content.js"],
       "css": ["style.css"],
-      "run_at": "document_end"
+      "run_at": "document_start"
     }
   ],
   "icons": {
